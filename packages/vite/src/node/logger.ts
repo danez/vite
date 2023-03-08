@@ -67,7 +67,21 @@ export function createLogger(
   const clear = canClearScreen ? clearScreen : () => {}
 
   function output(type: LogType, msg: string, options: LogErrorOptions = {}) {
-    if (thresh >= LogLevels[type]) {
+    const shouldPrint = thresh >= LogLevels[type]
+    const sameAsLast = type === lastType && msg === lastMsg
+
+    if (canClearScreen) {
+      if (sameAsLast) {
+        sameCount++
+        clear()
+      } else {
+        if (options.clear) {
+          clear()
+        }
+      }
+    }
+
+    if (shouldPrint) {
       const method = type === 'info' ? 'log' : type
       const format = () => {
         if (options.timestamp) {
@@ -82,21 +96,17 @@ export function createLogger(
           return msg
         }
       }
+
       if (options.error) {
         loggedErrors.add(options.error)
       }
       if (canClearScreen) {
-        if (type === lastType && msg === lastMsg) {
-          sameCount++
-          clear()
+        if (sameAsLast) {
           console[method](format(), colors.yellow(`(x${sameCount + 1})`))
         } else {
           sameCount = 0
           lastMsg = msg
           lastType = type
-          if (options.clear) {
-            clear()
-          }
           console[method](format())
         }
       } else {
